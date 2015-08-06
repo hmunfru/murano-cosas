@@ -9,10 +9,12 @@ import murano_request
 
 def test_murano ():
 
+
     requestm = murano_request.Request (KEYSTONE, "localhost:8082", TENANT_ID, USERNAME, PASSWORD)
 
     deploy_git(requestm, 'env2ddffffrfffd')
-    deploy_orion_chef(requestm, 'env')
+    deploy_orion_chef(requestm, 'effffvfnffrffrfv')
+    deploy_orion_chef_net(requestm, 'effffgfvfnffrffrfv')
     deploy_puppet_git(requestm, 'env')
     deploy_orion_docker(requestm, 'ven')
 
@@ -28,7 +30,16 @@ def deploy_tomcat(request, env_name):
     deploy_normal_test(request, 'tomcat'+env_name, 'tomcat', 'io.murano.apps.linux.Git')
 
 def deploy_orion_chef(request, env_name):
-    deploy_normal_test(request, 'orionchef'+env_name, 'orionchef', 'io.murano.conflang.fiware.OrionChef')
+    atts=[]
+    atts.append({'port': '1026'})
+    prod = instance.Product('orionchef', 'io.murano.conflang.fiware.OrionChef', atts)
+    deploy_normal_test2(request, 'cheforion'+env_name, prod)
+
+def deploy_orion_chef_net(request, env_name):
+    atts=[]
+    atts.append({'port': '1026'})
+    prod = instance.Product('orionchef', 'io.murano.conflang.fiware.OrionChef', atts)
+    deploy_normal_test_network(request, 'cheforion'+env_name, prod, "node-int-net-01")
 
 def deploy_puppet_git(request, env_name):
     deploy_normal_test(request, 'gitpuppet'+env_name, 'gitpuppet', 'io.murano.conflang.puppet.GitPuppet')
@@ -37,7 +48,7 @@ def deploy_puppet_git(request, env_name):
 
 def deploy_normal_test(request, env_name, product_name, product_id):
     env = instance.Environment(env_name)
-    inst = instance.Instance ('ubuntu', 'Ubuntu14.04init' )
+    inst = instance.Instance ('ubuntu', 'CentOS-6.5-x64' )
     prod = instance.Product(product_name, product_id)
     service = instance.Service(product_name, prod)
     service.add_instance(inst)
@@ -46,7 +57,15 @@ def deploy_normal_test(request, env_name, product_name, product_id):
 
 def deploy_normal_test2(request, env_name, product):
     env = instance.Environment(env_name)
-    inst = instance.Instance ('ubuntu', 'Ubuntu14.04init' )
+    inst = instance.Instance ('ubuntu', 'CentOS-6.5-x64' )
+    service = instance.Service(product.name, product)
+    service.add_instance(inst)
+    env.add_service (service)
+    request.deploy_environment(env)
+
+def deploy_normal_test_network(request, env_name, product, network):
+    env = instance.Environment(env_name, network)
+    inst = instance.Instance ('ubuntu', 'CentOS-6.5-x64' )
     service = instance.Service(product.name, product)
     service.add_instance(inst)
     env.add_service (service)

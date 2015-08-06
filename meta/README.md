@@ -1,12 +1,8 @@
-# Murano Classes Metadata
+# FIWARE Murano Classes Metadata
 
-This folder contains only 'core library' classes for Murano.
+This folder contains only 'core library' classes for Murano needed by FIWARE.
 
-Any file located here will be included into Murano package (deb/rpm) and imported automatically during installation.
+To use it just overwrite the folder meta in your murano installation with this one.
 
-Any other classes should be imported manually via CLI or UI.
-
-Such classes could be found in one of two external repositories:
-* Murano App Incubator repository - https://github.com/murano-project/murano-app-incubator
-* Murano Incubated Apps repository - doesn't exist yet
-
+In includes:
+- ConfLangIntance.yaml: It installs in the VM murano-agent, chef and puppet by cloud-init

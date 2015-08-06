@@ -20,7 +20,7 @@ class Request:
         return http.get_token("http://"+self.keystone_url + '/tokens', self.tenant, self.user, self.password)
 
     def deploy_environment(self, env):
-        env_id = self.create_env(self.token, env.name)
+        env_id = self.create_env(self.token, env)
         print env_id
         conf_id = self.configure_env(self.token, env_id)
         print conf_id
@@ -29,14 +29,14 @@ class Request:
 
         self.deploy_env(self.token, env_id, conf_id)
 
-    def create_env(self, token, env_name):
+    def create_env(self, token, env):
 
         url = "http://{0}/v1/environments".format(self.murano_url)
         headers = {'X-Auth-Token': token,
                'Accept': "application/json",
                'Content-Type': 'application/json'}
 
-        payload="{\"name\": \""+env_name+"\"}"
+        payload=json.dumps(env.to_json())
         #payload="{\"name\": \""+env_name+"\", \"defaultNetworks\": { \"environment\": {\"?\": {\"id\": 234, \"type\": \"io.murano.resources.ExistingNeutronNetwork\"}, \"internalNetworkName\": \"node-int-net-01\" }}}"
         print "---------------------------------------------"
         print "Creating an empty environment " + url
