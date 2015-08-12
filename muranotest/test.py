@@ -1,262 +1,124 @@
 __author__ = 'henar'
-import sys
-import http
-import murano_request
-import json
-import os
-import instance
+
+import model
 import murano_request
 
 def test_murano ():
 
+    KEYSTONE = 'cloud.lab.fiware.org:4731'
+    TENANT_ID = 'henar cloud'
+    USERNAME = 'henar@tid.es'
+    PASSWORD = 'vallelado'
 
     requestm = murano_request.Request (KEYSTONE, "localhost:8082", TENANT_ID, USERNAME, PASSWORD)
+    
+    template_base_name ='ddfffffd'
 
-    deploy_git(requestm, 'env2ddffffrfffd')
-    deploy_orion_chef(requestm, 'effffvfnffrffrfv')
-    deploy_orion_chef_net(requestm, 'effffgfvfnffrffrfv')
-    deploy_puppet_git(requestm, 'env')
-    deploy_orion_docker(requestm, 'ven')
+    deploy_git(requestm, 'git' + template_base_name)
+    deploy_tomcat(requestm, 'tomcat' + template_base_name)
+    deploy_orion_chef(requestm, 'orionchef' + template_base_name)
+    deploy_mysql_puppet(requestm, 'mysqlpupet' + template_base_name)
+    deploy_orion_docker(requestm, 'oriondocker' + template_base_name)
+
+    deploy_vm_no_exiting_network(requestm, 'notexisting' + template_base_name, 'minet')
+    deploy_two_networks_in_vm(requestm, 'twonets' + template_base_name)
+    deploy_two_products_in_vm(requestm, 'twoproducts' + template_base_name)
 
 
 
-def deploy_git(request, env_name):
+def deploy_git(request, template_name):
     atts=[]
     atts.append({'repo': 'test'})
-    prod = instance.Product('git', 'io.murano.apps.linux.Git', atts)
-    deploy_normal_test2(request, 'git'+env_name, prod)
+    prod = model.Product('git', 'io.murano.apps.linux.Git', atts)
+    deploy_blueprint_template(request, template_name, prod)
 
-def deploy_tomcat(request, env_name):
-    deploy_normal_test(request, 'tomcat'+env_name, 'tomcat', 'io.murano.apps.linux.Git')
 
-def deploy_orion_chef(request, env_name):
+def deploy_tomcat(request, template_name):
+    atts=[]
+    atts.append({'port': '8080'})
+    prod = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    deploy_blueprint_template(request, template_name, prod)
+
+def deploy_orion_chef(request, template_name):
     atts=[]
     atts.append({'port': '1026'})
-    prod = instance.Product('orionchef', 'io.murano.conflang.fiware.OrionChef', atts)
-    deploy_normal_test2(request, 'cheforion'+env_name, prod)
+    prod = model.Product('orionchef', 'io.murano.conflang.fiware.OrionChef', atts)
+    deploy_blueprint_template(request, template_name, prod)
 
-def deploy_orion_chef_net(request, env_name):
+
+def deploy_mysql_puppet(request, template_name):
+    prod = model.Product('msyqlpuppet', 'io.murano.conflang.fiware.MySQLPuppet')
+    deploy_blueprint_template(request, template_name, prod)
+
+def deploy_blueprint_template(request, template_name, product):
+    template = model.Template(template_name)
+    net = model.Network("node-int-net-01", True)
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    service = model.Service(product.name, product)
+    service.add_instance(inst)
+    template.add_service(service)
+    request.deploy_template(template)
+
+def deploy_vm_no_exiting_network(request, template_name, network):
     atts=[]
-    atts.append({'port': '1026'})
-    prod = instance.Product('orionchef', 'io.murano.conflang.fiware.OrionChef', atts)
-    deploy_normal_test_network(request, 'cheforion'+env_name, prod, "node-int-net-01")
-
-def deploy_puppet_git(request, env_name):
-    deploy_normal_test(request, 'gitpuppet'+env_name, 'gitpuppet', 'io.murano.conflang.puppet.GitPuppet')
-
-
-
-def deploy_normal_test(request, env_name, product_name, product_id):
-    env = instance.Environment(env_name)
-    inst = instance.Instance ('ubuntu', 'CentOS-6.5-x64' )
-    prod = instance.Product(product_name, product_id)
-    service = instance.Service(product_name, prod)
+    atts.append({'port': '8080'})
+    template = model.Template(template_name)
+    product = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    net = model.Network(network, False)
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    service = model.Service(product.name, product)
     service.add_instance(inst)
-    env.add_service (service)
-    request.deploy_environment(env)
+    template.add_service(service)
+    request.deploy_template(template)
 
-def deploy_normal_test2(request, env_name, product):
-    env = instance.Environment(env_name)
-    inst = instance.Instance ('ubuntu', 'CentOS-6.5-x64' )
-    service = instance.Service(product.name, product)
+def deploy_two_networks_in_vm(request, template_name):
+    atts=[]
+    atts.append({'port': '8080'})
+    template = model.Template(template_name)
+    product = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    net1 = model.Network('new', False)
+    net2 = model.Network("node-int-net-01", True)
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net1, net2] )
+    service = model.Service(product.name, product)
     service.add_instance(inst)
-    env.add_service (service)
-    request.deploy_environment(env)
+    template.add_service(service)
+    request.deploy_template(template)
 
-def deploy_normal_test_network(request, env_name, product, network):
-    env = instance.Environment(env_name, network)
-    inst = instance.Instance ('ubuntu', 'CentOS-6.5-x64' )
-    service = instance.Service(product.name, product)
+def deploy_two_products_in_vm(request, template_name):
+    atts=[]
+    atts.append({'port': '8080'})
+    template = model.Template(template_name)
+    product = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    net = model.Network("node-int-net-01", True)
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    service = model.Service(product.name, product)
     service.add_instance(inst)
-    env.add_service (service)
-    request.deploy_environment(env)
+    template.add_service(service)
 
-def deploy_orion_docker(request, env_name, product_name, product_id):
-    env = instance.Environment(env_name)
-    inst = instance.Instance ('ubuntu', 'Ubuntu14.04init' )
-    service = instance.Service('DockerOrion', 'docker', 'io.murano.apps.docker.DockerStandaloneHost')
+    product2 = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    service2 = model.Service(product2.name, product2)
+    service.add_instance(inst, True)
+    template.add_service(service2)
+    request.deploy_template(template)
+
+def deploy_orion_docker(request, template_name):
+    template = model.Template(template_name)
+    net = model.Network("node-int-net-01", True)
+
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    product = model.Product('docker', 'io.murano.apps.docker.DockerStandaloneHost')
+    service = model.Service(product.name, product)
     service.add_instance(inst)
 
     atts=[]
     atts.append({'publish': True})
-    atts.append({'host': inst.id})
-    service2 = instance.Service('dockerorion', 'dockerorion', 'io.murano.apps.docker.DockerOrion', atts)
+    atts.append({'host': product.id})
+    product = model.Product('dockerorion', 'io.murano.apps.docker.DockerOrion', atts)
+    service2 = model.Service(product.name, product)
 
-    env.add_service (service)
-    env.add_service (service2)
-    request.deploy_environment(env)
-
-
-
-def deploy_orion_docker2 (token, env_id, conf_id):
-
-    payload="{\"instance\": {\"name\": \"vm\", \"flavor\": \"m1.small\", \"assignFloatingIp\": true, \"keyname\": \"nueva\", \"image\": \"Ubuntu14.04init\", \"?\": " \
-            "{\"type\": \"io.murano.resources.ConfLangInstance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}}, \"name\": \"Docker standalone host\",  \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"Docker Standalone Host\"},\
-    \"type\": \"io.murano.apps.docker.DockerStandaloneHost\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"},  \"dockerRegistry\": \"\"}"
-
-
-
-def deploy_orion_docker2(token, env_id, conf_id):
-    payload = "{\"host\": \"190c8705-5784-4782-83d7-0ab55a1449aa\", \"name\": \"DockerOrion\", \"?\":" \
-              " {\"_26411a1861294160833743e45d0eaad9\": {\"name\": \"Orion \"}, \"type\": \"io.murano.apps.docker.DockerOrion\", " \
-              "\"id\": \"df414676-4cb9-4135-9e34-5b7c2812489b\"}, \"publish\": true}"
-
-
-
-
-
-def deploy_docker4 (token, env_id, conf_id):
-    payload="{ "\
-            " \"name\": \"dock\"}, \"name\": \"docker\", \"publish\": \"true\"," \
-            " \"password\": \"dd\", \"host\": {" \
-            "\"instance\": " \
-            "{\"flavor\": \"m1.small\", \"keypair\": \"henar\", \"image\": \"Ubuntu14.04init\", \"?\":" \
-            " {\"type\": \"io.murano.resources.ConfLangInstance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}," \
-            " \"name\": \"dock\"}, \"?\":" \
-            " {\"type\": \"io.murano.apps.docker.DockerStandaloneHost\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}} , \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"orion\"},\
-    \"type\": \"io.murano.apps.docker.DockerTomcat\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}"
-
-
-
-def deploy_docker (token, env_id, conf_id):
-    payload="{ \"name\": \"docker\", \"publish\": \"true\"," \
-            " \"password\": \"dd\", \"host\":  " \
-            "{\"instance\": {\"flavor\": \"m1.small\", \"keypair\": \"henar\", \"image\": \"Ubuntu14.04init\", \"?\":" \
-            " {\"type\": \"io.murano.resources.LinuxMuranoInstance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}, \"name\": \"git\"}, \"name\": \"docker\", \"publish\": \"true\"," \
-            " \"password\": \"dd\", \"host\": \"e91cdebf7ed94740bfe721afee5adedf\", \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"orion\"},\
-    \"type\": \"io.murano.apps.docker.DockerStandaloneHost\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}, " \
-            "\"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"orion\"},\
-    \"type\": \"io.murano.apps.docker.DockerTomcat\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}"
-
-
-
-
-def deploy_docker3 (token, env_id, conf_id):
-    payload="{ \"name\": \"docker\", \"publish\": \"true\"," \
-            " \"password\": \"dd\", \"host\": \"dd\" , \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"orion\"},\
-    \"type\": \"io.murano.apps.docker.DockerTomcat\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}"
-
-
-
-
-def deploy_docker2 (token, env_id, conf_id):
-    payload="{\"instance\": {\"flavor\": \"m1.small\", \"keypair\": \"henar\", \"image\": \"Ubuntu14.04init\", \"?\":" \
-            " {\"type\": \"io.murano.resources.LinuxMuranoInstance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}, \"name\": \"git\"}, \"name\": \"muranodockerhost\", \"publish\": \"true\"," \
-            " \"password\": \"dd\", \"host\": \"e91cdebf7ed94740bfe721afee5adedf\", \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"muranodockerhost\"},\
-    \"type\": \"io.murano.apps.docker.DockerStandaloneHost\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}"
-
-
-
-
-
-def deploy_orion (token, env_id, conf_id):
-
-    payload="{\"instance\": {\"flavor\": \"m1.small\", \"image\": \"CentOS-6.5-x64\", \"?\": {\"type\": \"io.murano.resources.ConfLangInstance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}, \"name\": \"orion\"}, \"name\": \"orion\", \"port\": \"1026\", \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"orion\"},\
-    \"type\": \"io.murano.conflang.fiware.OrionChef\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}"
-
-
-
-def deploy_posgresql(token, env_id, conf_id):
-    payload="{\"instance\": " \
-                "{" \
-                    "\"flavor\": \"m1.small\"," \
-                    " \"image\": \" muranoimage\"," \
-                    " \"?\": " \
-                    "{" \
-                        "\"type\": \"io.murano.resources.Instance\",\
-                        \"id\":  \"instanceid\"" \
-                    "}," \
-                    " \"name\": \"vmname\"" \
-                "}, " \
-            "\"name\": \"postgresql\", " \
-            "\"database\": \"mydatabase\", " \
-            "\"username\": \"username\"," \
-            "\"password\": \"password\"," \
-            "\"?\": {\
-                \"_26411a1861294160833743e45d0eaad9\": {\
-                \"name\": \"git\"},\
-            \"type\": \"io.murano.databases.PostgreSql\",\
-            \"id\": \"idpostgresql\"}}"
-
-
-
-
-def deploy_tomcat_chef (token, env_id, conf_id):
-
-    payload="{\"instance\": {\"flavor\": \"m1.small\", \"image\": \"Ubuntu14.04init\", \"?\": {\"type\": \"io.murano.resources.ConfLangInstance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}, \"name\": \"tomcat\"}, \"name\": \"tomcat\", \"port\": 8080, \"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"tomcat\"},\
-    \"type\": \"io.murano.conflang.chef.TomcatChef\",\
-    \"id\": \"idtomcat\"}}"
-
-
-
-def deploy_tomcat_app (token, env_id, conf_id):
-
-    payload="{\"name\": \"tomcat\",\"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"tomcat\"},\
-    \"type\": \"io.murano.apps.apache.Tomcat\",\
-    \"id\": \"idtomcat\"}}"
-
-
-
-def deploy_vm_cluster (token, env_id, conf_id):
-
-    payload="{\"instance\": {\"flavor\": \"m1.small\", \"image\": \" muranoimage\", \"?\": {\"type\": \"io.murano.resources.Instance\",\
-            \"id\":  \"5843836d2a4145f0895d7e66ee8ccf43\"}, \"name\": \"cluster\"}, \"name\": \"cluster\",\"?\": {\
-    \"_26411a1861294160833743e45d0eaad9\": {\
-      \"name\": \"cluster\"},\
-    \"type\": \"io.murano.apps.test.SimpleVMcluster\",\
-    \"id\": \"190c8705-5784-4782-83d7-0ab55a1449aa\"}}"
-
-
-
-
-def deploy_hello_world (token, env_id, conf_id):
-    payload="{\"name\": \"helloworld\", " \
-            "\"tomcat\": \"idtomcat\", " \
-            "\"repository\": \"repository\"," \
-            "\"dir\": \"dir\"," \
-            "\"database\": \"idpostgresql\"," \
-            "\"dbName\": \"dbName\"," \
-            "\"dbUser\": \"dbUser\"," \
-            "\"dbPassword\": \"dbPassword\"," \
-            "\"?\": {\
-                \"_26411a1861294160833743e45d0eaad9\": {\
-                \"name\": \"git\"},\
-            \"type\": \"io.murano.apps.java.HelloWorld\",\
-            \"id\": \"idhello\"}}"
-
-
+    template.add_service (service)
+    template.add_service (service2)
+    request.deploy_template(template)
 
 
 if __name__ == "__main__":
