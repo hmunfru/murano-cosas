@@ -4,7 +4,7 @@ RUN apt-get update && sudo apt-get -y install python-pip python-dev \
   libxml2-dev libxslt1-dev git \
   libffi-dev zip python-mysqldb mysql-server
 RUN pip install tox
-COPY murano /opt/murano/
+RUN git clone https://github.com/openstack/murano /opt/
 COPY test-requirements.txt /opt/murano/test-requirements.txt
 WORKDIR /opt/murano
 EXPOSE 8082
