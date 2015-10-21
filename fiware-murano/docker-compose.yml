@@ -10,7 +10,7 @@ rabbit:
    image: rabbitmq:3
    container_name: rabbit
 murano:
-  build: fiware-murano
+  build: murano-cosas
   extra_hosts:
   - "murano.lab.fiware.org:127.0.0.1"
   ports:
