@@ -10,8 +10,4 @@ COPY fiware-murano/murano.conf /opt/murano/etc/murano/murano.conf
 COPY fiware-murano/start.sh /opt/murano/start.sh
 WORKDIR /opt/murano
 EXPOSE 8082
-RUN virtualenv .tox/venv
-RUN virtualenv .tox/venv
-RUN /opt/murano/.tox/venv/bin/python .tox/venv/bin/pip install -U -r/opt/murano/requirements.txt
-RUN /opt/murano/.tox/venv/bin/python .tox/venv/bin/pip install -U -r/opt/murano/test-requirements.txt
 CMD ./start.sh; tox -e venv -- murano-engine --config-file ./etc/murano/murano.conf
