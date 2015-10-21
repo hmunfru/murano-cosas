@@ -5,9 +5,9 @@ RUN apt-get update && sudo apt-get -y install python-pip python-dev \
   libffi-dev zip python-mysqldb mysql-server
 RUN pip install tox
 RUN git clone https://github.com/openstack/murano /opt/
-COPY murano-fiware/test-requirements.txt /opt/murano/test-requirements.txt
-COPY murano-fiware/murano.conf /opt/murano/etc/murano/murano.conf
-COPY murano-fiware/start.sh /opt/murano/start.sh
+COPY fiwar-murano/test-requirements.txt /opt/murano/test-requirements.txt
+COPY fiware-murano/murano.conf /opt/murano/etc/murano/murano.conf
+COPY fiware-murano/start.sh /opt/murano/start.sh
 WORKDIR /opt/murano
 EXPOSE 8082
 RUN virtualenv .tox/venv
