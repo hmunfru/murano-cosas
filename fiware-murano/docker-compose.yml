@@ -10,7 +10,7 @@ rabbit:
    image: rabbitmq:3
    container_name: rabbit
 murano:
-  image: hmunfru/murano-cosas
+  image: murano-cosas
   extra_hosts:
   - "murano.lab.fiware.org:127.0.0.1"
   ports:
@@ -18,3 +18,5 @@ murano:
   links:
    - mysql
    - rabbit
+  environment: 
+     - PASSWORD
