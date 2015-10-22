@@ -20,3 +20,9 @@ murano:
    - rabbit
   environment: 
      - PASSWORD
+murano-test:
+  image: hmunfru/murano-test
+  links:
+   - murano
+  environment:
+   - PASSWORD
