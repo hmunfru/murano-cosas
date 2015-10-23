@@ -26,3 +26,5 @@ murano-test:
    - murano
   environment:
    - PASSWORD
+  volumes:
+  - test:/opt/test 
