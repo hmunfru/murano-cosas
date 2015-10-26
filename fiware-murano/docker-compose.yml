@@ -27,4 +27,4 @@ murano-test:
   environment:
    - PASSWORD
   volumes:
-  - /home/contint/workspace/FIWARECloud/TestDocker/fiware-murano/test:/opt/test 
+  - .:/test 
