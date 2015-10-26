@@ -10,19 +10,22 @@ def test_murano ():
     USERNAME = 'henar@tid.es'
     PASSWORD = 'vallelado'
 
-    requestm = murano_request.Request (KEYSTONE, "localhost:8082", TENANT_ID, USERNAME, PASSWORD)
+    requestm = murano_request.Request (KEYSTONE, "192.168.99.100:8082", TENANT_ID, USERNAME, PASSWORD)
     
-    template_base_name ='ddfffffd'
+    template_base_name ='aaffffff'
 
-    deploy_git(requestm, 'git' + template_base_name)
-    deploy_tomcat(requestm, 'tomcat' + template_base_name)
+    #deploy_git(requestm, 'git' + template_base_name)
+    #
+    #deploy_tomcat(requestm, 'tomcat' + template_base_name)
     deploy_orion_chef(requestm, 'orionchef' + template_base_name)
-    deploy_mysql_puppet(requestm, 'mysqlpupet' + template_base_name)
-    deploy_orion_docker(requestm, 'oriondocker' + template_base_name)
+    #deploy_mysql_puppet(requestm, 'mysqlpupet' + template_base_name)
+    #deploy_orion_docker(requestm, 'oriondocker' + template_base_name)
 
-    deploy_vm_no_exiting_network(requestm, 'notexisting' + template_base_name, 'minet')
-    deploy_two_networks_in_vm(requestm, 'twonets' + template_base_name)
+    deploy_no_network(requestm, 'nonet' + template_base_name)
+    #deploy_vm_no_exiting_network(requestm, 'notexisting' + template_base_name, 'minuevared')
+    #deploy_two_networks_in_vm(requestm, 'twonets' + template_base_name)
     deploy_two_products_in_vm(requestm, 'twoproducts' + template_base_name)
+    deploy_two_products_in_two_vms(requestm, 'twovms' + template_base_name)
 
 
 
@@ -42,18 +45,25 @@ def deploy_tomcat(request, template_name):
 def deploy_orion_chef(request, template_name):
     atts=[]
     atts.append({'port': '1026'})
-    prod = model.Product('orionchef', 'io.murano.conflang.fiware.OrionChef', atts)
-    deploy_blueprint_template(request, template_name, prod)
-
+    product = model.Product('orionchef', 'io.murano.conflang.chef.GitChef', atts)
+    template = model.Template(template_name)
+    net = model.Network("node-int-net-01", True)
+    inst = model.Instance ('centos', 'CentOS-6.5init_deprecated', '2' , 'demo4', False, [net] )
+    service = model.Service(product.name, product)
+    service.add_instance(inst)
+    template.add_service(service)
+    request.deploy_template(template)
 
 def deploy_mysql_puppet(request, template_name):
-    prod = model.Product('msyqlpuppet', 'io.murano.conflang.fiware.MySQLPuppet')
+    atts=[]
+    atts.append({'port': '1026'})
+    prod = model.Product('msyqlpuppet', 'io.murano.conflang.puppet.MySQLPuppet', atts)
     deploy_blueprint_template(request, template_name, prod)
 
 def deploy_blueprint_template(request, template_name, product):
     template = model.Template(template_name)
     net = model.Network("node-int-net-01", True)
-    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    inst = model.Instance ('ubuntu', 'murano_agent_ubuntu14.04', '2' , 'demo4', False, [net] )
     service = model.Service(product.name, product)
     service.add_instance(inst)
     template.add_service(service)
@@ -65,7 +75,7 @@ def deploy_vm_no_exiting_network(request, template_name, network):
     template = model.Template(template_name)
     product = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
     net = model.Network(network, False)
-    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , 'demo4', False, [net] )
     service = model.Service(product.name, product)
     service.add_instance(inst)
     template.add_service(service)
@@ -84,6 +94,17 @@ def deploy_two_networks_in_vm(request, template_name):
     template.add_service(service)
     request.deploy_template(template)
 
+def deploy_no_network(request, template_name):
+    atts=[]
+    atts.append({'port': '8080'})
+    template = model.Template(template_name)
+    product = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False )
+    service = model.Service(product.name, product)
+    service.add_instance(inst)
+    template.add_service(service)
+    request.deploy_template(template)
+
 def deploy_two_products_in_vm(request, template_name):
     atts=[]
     atts.append({'port': '8080'})
@@ -97,7 +118,25 @@ def deploy_two_products_in_vm(request, template_name):
 
     product2 = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
     service2 = model.Service(product2.name, product2)
-    service.add_instance(inst, True)
+    service2.add_instance(inst, True)
+    template.add_service(service2)
+    request.deploy_template(template)
+
+def deploy_two_products_in_two_vms(request, template_name):
+    atts=[]
+    atts.append({'port': '8080'})
+    template = model.Template(template_name)
+    product = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    net = model.Network("node-int-net-01", True)
+    inst = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    service = model.Service(product.name, product)
+    service.add_instance(inst)
+    template.add_service(service)
+
+    product2 = model.Product('tomcat', 'io.murano.apps.apache.Tomcat', atts)
+    inst2 = model.Instance ('ubuntu', 'Ubuntu14.04init_deprecated', '2' , '', False, [net] )
+    service2 = model.Service(product2.name, product2)
+    service2.add_instance(inst2)
     template.add_service(service2)
     request.deploy_template(template)
 

@@ -6,7 +6,7 @@ import uuid
 
 class Instance:
     def __init__(self, name, image='694ae405-0731-4dab-a50f-d089d1cca04d',
-                 flavor='m1.small', keyname='', floatingip='false', networks=[] ):
+                 flavor='m1.small', keyname='demo4', floatingip='false', networks=[] ):
         self.name = name
         self.image = image
         self.flavor = flavor
@@ -23,9 +23,10 @@ class Instance:
         instance_json ['flavor'] = self.flavor
         instance_json ['keyname'] = self.keyname
         instance_json ['assignFloatingIp'] = self.assignFloatingIp
+        #instance_json["?"] = {'type' : 'io.murano.resources.LinuxMuranoInstance', 'id': self.id}
         instance_json["?"] = {'type' : 'io.murano.resources.ConfLangInstance', 'id': self.id}
 
-        if self.networks is not None:
+        if self.networks is not None and len(self.networks) > 0:
             networks = {}
             networks['useFlatNetwork'] = False
             networks['primaryNetwork'] = None
@@ -35,6 +36,13 @@ class Instance:
             for net in self.networks:
                 networks['customNetworks'] .append(net.to_json())
 
+            instance_json['networks'] = networks
+        else:
+            networks = {}
+            networks['useFlatNetwork'] = False
+            networks['primaryNetwork'] = None
+            networks['useEnvironmentNetwork'] = True
+            networks['customNetworks'] = []
             instance_json['networks'] = networks
         return instance_json
 
@@ -50,10 +58,6 @@ class Service:
     def add_instance(self, instance, existing_instance=False):
         self.instance = instance
         self.existing_instance = existing_instance
-
-    def add_network(self, network):
-        self.networks.append(network)
-
 
     def delete_product(self, product):
         self.products.pop(product)
@@ -82,7 +86,7 @@ class Product:
 
     def to_json(self):
         product_json = {}
-        product_json['_26411a1861294160833743e45d0eaad9'] = {"name": self.name}
+        product_json['_'+str(self.id)] = {"name": self.name}
         product_json['type'] = self.type
         product_json['id'] = self.id
         return product_json
@@ -103,7 +107,7 @@ class Network:
             net_json['name'] = self.name
             net_json['autoUplink'] = True
             net_json['autogenerateSubnet'] = True
-            net_json['?'] = {"type": "io.murano.resources.NeutronNetworkBase", "id": self.id}
+            net_json['?'] = {"type": "io.murano.resources.NeutronNetwork", "id": self.id}
         return net_json
 
 
@@ -121,16 +125,18 @@ class Template:
         environment_json = {}
         environment_json['name'] = self.name
 
-        if self.network is not None:
-            net_network={}
-            net_network['internalNetworkName'] = self.network
-            net_network['?']={'id': 'id', 'type': 'io.murano.resources.ExistingNeutronNetwork'}
-            env_json2={'environment': net_network}
-            environment_json['defaultNetworks']=env_json2
 
-        if self.services is not None:
-            for service in self.services:
-               environment_json['?']  = service.to_json()
+        net_network={}
+        net_network['internalNetworkName'] = 'node-int-net-01'
+        net_network['?']={'id': 'id', 'type': 'io.murano.resources.ExistingNeutronNetwork'}
+        env_json2={'environment': net_network}
+        environment_json['defaultNetworks']=env_json2
         return environment_json
 
-
+    def _is_networks_in_services(self):
+        if self.services is not None:
+            for service in self.services:
+                if service.instance is not None and service.instance.networks is not None:
+                    if len(service.instance.networks) > 0:
+                        return True
+        return False

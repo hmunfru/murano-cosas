@@ -31,7 +31,7 @@ class Request:
         self.deploy_env(self.token, env_id, conf_id)
 
     def deploy_template(self, template):
-        template_id = self.create_template(template.name)
+        template_id = self.create_template(template)
 
         for service in template.services:
             self.add_service ( template_id, service)
@@ -146,8 +146,6 @@ class Request:
         headers = {'X-Auth-Token': self.token,
                'Accept': "application/json",
                'Content-Type': 'application/json'}
-
-        print "Get the environment " + url
         response = http.get(url, headers)
 
         if response.status != 200:
@@ -195,12 +193,12 @@ class Request:
             result.append(response_json['session_id'])
             return result
 
-    def create_template(self, template_name):
+    def create_template(self, template):
         url = "http://{0}/v1/templates".format(self.murano_url)
         headers = {'X-Auth-Token': self.token,
                    'Accept': "application/json",
                    'Content-Type': 'application/json'}
-        payload="{\"name\": \""+template_name+"\"}"
+        payload=json.dumps(template.to_json())
         print "Creating a blueprint template " + url
         print payload
         response = http.post(url, headers, payload)
@@ -274,6 +272,7 @@ class Request:
         payload = '{"auth":{"tenantName":"' + self.tenant +\
                   '","passwordCredentials":{"username":"'\
                   + self.user + '","password":"' + self.password + '"}}}'
+        print payload
 
         payload = '{ "auth": { \
         "scope": { \
